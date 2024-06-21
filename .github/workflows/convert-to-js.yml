@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 18.20.x
           cache: 'yarn'
 
       - name: Install dependencies
@@ -40,7 +40,6 @@ jobs:
               "module": "ES2022",
               "moduleResolution": "bundler",
               "target": "ES2022",
-              "types": ["@shopify/app-bridge-types"],
               "paths": {
                 "~/*": ["./app/*"]
               }

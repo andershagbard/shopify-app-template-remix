@@ -2,7 +2,7 @@
   "name": "app",
   "private": true,
   "scripts": {
-    "build": "vite build && vite build --ssr",
+    "build": "remix vite:build",
     "dev": "shopify app dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
@@ -19,6 +19,9 @@
     "vite": "vite"
   },
   "type": "module",
+  "engines": {
+    "node": "^18.20 || ^20.10 || >=21.0.0"
+  },
   "dependencies": {
     "@prisma/client": "^5.11.0",
     "@remix-run/dev": "^2.7.1",
@@ -27,10 +30,11 @@
     "@remix-run/serve": "^2.7.1",
     "@shopify/app": "^3.57.1",
     "@shopify/cli": "^3.57.1",
+    "@shopify/app-bridge-react": "^4.1.2",
     "@shopify/polaris": "^12.0.0",
-    "@shopify/shopify-api": "^9.5.1",
-    "@shopify/shopify-app-remix": "^2.5.0",
-    "@shopify/shopify-app-session-storage-prisma": "^4.0.2",
+    "@shopify/shopify-api": "^11.0.1",
+    "@shopify/shopify-app-remix": "^3.0.1",
+    "@shopify/shopify-app-session-storage-prisma": "^5.0.1",
     "isbot": "^5.1.0",
     "prisma": "^5.11.0",
     "react": "^18.2.0",
@@ -39,8 +43,7 @@
   },
   "devDependencies": {
     "@remix-run/eslint-config": "^2.7.1",
-    "@shopify/api-codegen-preset": "^0.0.7",
-    "@shopify/app-bridge-types": "^0.0.11",
+    "@shopify/api-codegen-preset": "^1.0.0",
     "@types/eslint": "^8.40.0",
     "@types/node": "^20.6.3",
     "@types/react": "^18.2.31",
@@ -58,5 +61,11 @@
   },
   "trustedDependencies": [
     "@shopify/plugin-cloudflare"
-  ]
+  ],
+  "resolutions": {
+    "undici": "6.13.0"
+  },
+  "overrides": {
+    "undici": "6.13.0"
+  }
 }

@@ -149,14 +149,26 @@ When you reach the step for [setting up environment variables](https://shopify.d
 
 ### Hosting on Vercel
 
-When hosting your Shopify Remix app on Vercel, Vercel uses a fork of the [Remix library](https://github.com/vercel/remix).
-
-To  ensure all global variables are set correctly when you deploy your app to Vercel update your app to use the Vercel adapter instead of the node adapter.
+Using the Vercel Preset is recommended when hosting your Shopify Remix app on Vercel. You'll also want to ensure imports that would normally come from `@remix-run/node` are imported from `@vercel/remix` instead. Learn more about hosting Remix apps on Vercel [here](https://vercel.com/docs/frameworks/remix).
 
 ```diff
-// shopify.server.ts
-- import "@shopify/shopify-app-remix/adapters/node";
-+ import "@shopify/shopify-app-remix/adapters/vercel";
+// vite.config.ts
+import { vitePlugin as remix } from "@remix-run/dev";
+import { defineConfig, type UserConfig } from "vite";
+import tsconfigPaths from "vite-tsconfig-paths";
++ import { vercelPreset } from '@vercel/remix/vite';
+
+installGlobals();
+
+export default defineConfig({
+  plugins: [
+    remix({
+      ignoredRouteFiles: ["**/.*"],
++     presets: [vercelPreset()],
+    }),
+    tsconfigPaths(),
+  ],
+});
 ```
 
 ## Gotchas / Troubleshooting
@@ -216,6 +228,7 @@ pnpm run deploy
 
 This template registers webhooks after OAuth completes, using the `afterAuth` hook when calling `shopifyApp`.
 The package calls that hook in 2 scenarios:
+
 - After installing the app
 - When an access token expires
 
@@ -228,7 +241,7 @@ That will force the OAuth process and call the `afterAuth` hook.
 
 Webhooks subscriptions created in the [Shopify admin](https://help.shopify.com/en/manual/orders/notifications/webhooks) will fail HMAC validation. This is because the webhook payload is not signed with your app's secret key.
 
-Create [webhook subscriptions]((https://shopify.dev/docs/api/shopify-app-remix/v1/guide-webhooks)) using the `shopifyApp` object instead.
+Create [webhook subscriptions](https://shopify.dev/docs/api/shopify-app-remix/v1/guide-webhooks) using the `shopifyApp` object instead.
 
 Test your webhooks with the [Shopify CLI](https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger) or by triggering events manually in the Shopify admin(e.g. Updating the product title to trigger a `PRODUCTS_UPDATE`).
 
@@ -250,6 +263,45 @@ See [hosting on Vercel](#hosting-on-vercel).
 When you trigger a webhook event using the Shopify CLI, the `admin` object will be `undefined`. This is because the CLI triggers an event with a valid, but non-existent, shop. The `admin` object is only available when the webhook is triggered by a shop that has installed the app.
 
 Webhooks triggered by the CLI are intended for initial experimentation testing of your webhook configuration. For more information on how to test your webhooks, see the [Shopify CLI documentation](https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger).
+
+### Using Defer & await for streaming responses
+
+To test [streaming using defer/await](https://remix.run/docs/en/main/guides/streaming) during local development you'll need to use the Shopify CLI slightly differently:
+
+1. First setup ngrok: https://ngrok.com/product/secure-tunnels
+2. Create an ngrok tunnel on port 8080: `ngrok http 8080`.
+3. Copy the forwarding address. This should be something like: `https://f355-2607-fea8-bb5c-8700-7972-d2b5-3f2b-94ab.ngrok-free.app`
+4. In a separate terminal run `yarn shopify app dev --tunnel-url=TUNNEL_URL:8080` replacing `TUNNEL_URL` for the address you copied in step 3.
+
+By default the CLI uses a cloudflare tunnel. Unfortunately it cloudflare tunnels wait for the Response stream to finish, then sends one chunk.
+
+This will not affect production, since tunnels are only for local development.
+
+### Using MongoDB and Prisma
+
+By default this template uses SQLlite as the database. It is recommended to move to a persisted database for production. If you choose to use MongoDB, you will need to make some modifications to the schema and prisma configuration. For more information please see the [Prisma MongoDB documentation](https://www.prisma.io/docs/orm/overview/databases/mongodb).
+
+Alternatively  you can use a MongDB database directly with the [MongoDB session storage adapter](https://github.com/Shopify/shopify-app-js/tree/main/packages/apps/session-storage/shopify-app-session-storage-mongodb).
+
+#### Mapping the id field
+In MongoDB, an ID must be a single field that defines an @id attribute and a @map("_id") attribute.
+The prisma adapter expects the ID field to be the ID of the session, and not the _id field of the document.
+
+To make this work you can add a new field to the schema that maps the _id field to the id field. For more information see the [Prisma documentation](https://www.prisma.io/docs/orm/prisma-schema/data-model/models#defining-an-id-field)
+
+```prisma
+model Session {
+  session_id  String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          String    @unique
+...
+}
+```
+
+####  Error: The "mongodb" provider is not supported with this command
+MongoDB does not support the [prisma migrate](https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/overview) command. If you are using MongoDB please see the [Prisma documentation](https://www.prisma.io/docs/orm/overview/databases/mongodb) for more information.
+
+#### Prisma needs to perform transactions, which requires your mongodb server to be run as a replica set
+See the [Prisma documentation](https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/mongodb/connect-your-database-node-mongodb) for connecting to a MongoDB database.
 
 ## Benefits
 
